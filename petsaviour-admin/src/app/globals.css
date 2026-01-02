@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+/*
+  PetSaviour Theme Tokens
+  Light: Orange/White
+  Dark: Black/Orange
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: var(--primary);
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --border: 217 19% 27%;
+    --input: 217 19% 27%;
+
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --muted: 217 19% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: var(--primary);
+  }
+
+  body {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* ------------------------------------------------------------
+   PetSaviour UI primitives (NO custom Tailwind color utilities)
+   ------------------------------------------------------------ */
+
+@layer components {
+  /* Background glow */
+  .ps-glow {
+    position: relative;
+  }
+  .ps-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      circle at top,
+      hsl(var(--primary) / 0.22),
+      transparent 45%
+    );
+  }
+  .dark .ps-glow::before {
+    background: radial-gradient(
+      circle at top,
+      hsl(var(--primary) / 0.28),
+      transparent 40%
+    );
+  }
+
+  /* Card */
+  .ps-card {
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .ps-card-hover {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+  .ps-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    border-color: hsl(var(--primary) / 0.40);
+  }
+
+  /* Text helpers */
+  .ps-muted {
+    color: hsl(var(--muted-foreground));
+  }
+  .ps-primary {
+    color: hsl(var(--primary));
+  }
+
+  /* Badge */
+  .ps-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: hsl(var(--primary) / 0.12);
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--primary) / 0.20);
+  }
+
+  /* Buttons */
+  .ps-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: calc(var(--radius) - 0.25rem);
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: opacity 150ms ease, background 150ms ease, border-color 150ms ease;
+    user-select: none;
+  }
+  .ps-btn-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1px solid transparent;
+  }
+  .ps-btn-primary:hover {
+    opacity: 0.95;
+  }
+
+  .ps-btn-secondary {
+    background: hsl(var(--primary) / 0.12);
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--primary) / 0.25);
+  }
+  .ps-btn-secondary:hover {
+    background: hsl(var(--primary) / 0.16);
+  }
+
+  .ps-btn-ghost {
+    background: transparent;
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+  }
+  .ps-btn-ghost:hover {
+    background: hsl(var(--muted));
+  }
+
+  .ps-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Inputs */
+  .ps-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .ps-input {
+    margin-top: 0.35rem;
+    width: 100%;
+    border-radius: calc(var(--radius) - 0.25rem);
+    border: 1px solid hsl(var(--input));
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    padding: 0.65rem 0.85rem;
+    outline: none;
+    transition: box-shadow 150ms ease, border-color 150ms ease;
+  }
+  .ps-input:focus {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 4px hsl(var(--ring) / 0.22);
+  }
+
+  /* Links */
+  .ps-link {
+    color: hsl(var(--primary));
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .ps-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Titles */
+  .ps-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .ps-subtitle {
+    margin-top: 0.35rem;
+    font-size: 0.95rem;
+    color: hsl(var(--muted-foreground));
+  }
+}
