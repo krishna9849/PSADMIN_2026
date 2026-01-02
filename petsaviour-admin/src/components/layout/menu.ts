@@ -119,6 +119,11 @@ export function getNav(role: AppRole, c: Capabilities): { title: string; items: 
           href: role === "vendor" ? "/vendor/profile" : "/staff/profile",
           icon: "User",
         },
+        {
+          label: "Change Password",
+          href: role === "vendor" ? "/vendor/change-password" : "/staff/change-password",
+          icon: "UserCog",
+        },
       ],
     },
   ];

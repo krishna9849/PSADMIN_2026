@@ -32,10 +32,15 @@ export function RoleGuard({ allow, children }: Props) {
   const pathname = usePathname();
 
   const session = useAuthStore((s) => s.session);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+
   const token = session.token;
   const uiRole = getUiRole(session);
 
   useEffect(() => {
+    // ✅ Critical: wait for persisted session to hydrate first
+    if (!hasHydrated) return;
+
     if (!token || !uiRole) {
       router.replace("/");
       return;
@@ -46,7 +51,10 @@ export function RoleGuard({ allow, children }: Props) {
       if (uiRole === "vendor") router.replace("/vendor/dashboard");
       if (uiRole === "staff") router.replace("/staff/dashboard");
     }
-  }, [token, uiRole, allow, router, pathname]);
+  }, [hasHydrated, token, uiRole, allow, router, pathname]);
+
+  // ✅ While hydrating, render nothing (prevents flicker + wrong redirect)
+  if (!hasHydrated) return null;
 
   if (!token || !uiRole) return null;
   if (!allow.includes(uiRole)) return null;
