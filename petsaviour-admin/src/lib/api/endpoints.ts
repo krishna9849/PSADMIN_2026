@@ -1,11 +1,9 @@
 export const EP = {
   auth: {
-    // ✅ Confirmed from your Postman
     adminLogin: "/auth/login",
     vendorStaffLogin: "/api/grooming/vendors/staff/login",
 
-    // ❗ Not provided yet. Keep placeholder for now.
-    // Replace when you share refresh API.
+    // 🚧 Future: update this when refresh API exists
     refresh: "/auth/refresh",
   },
 } as const;

@@ -3,23 +3,19 @@ import type { AppRole, Capabilities } from "../../lib/auth/rbac";
 export type NavItem = {
   label: string;
   href: string;
-  // lucide icon name string used by Sidebar
   icon:
     | "LayoutDashboard"
-    | "Users"
-    | "BadgeCheck"
-    | "ShoppingBag"
-    | "TicketPercent"
-    | "Crown"
     | "Store"
+    | "BadgeCheck"
+    | "Library"
+    | "ShoppingBag"
     | "GitBranch"
     | "UserCog"
     | "Wrench"
     | "Package"
-    | "ClipboardList"
     | "Briefcase"
-    | "User";
-  // gate visibility by capability
+    | "User"
+    | "ClipboardList";
   showIf?: (c: Capabilities, role: AppRole) => boolean;
 };
 
@@ -28,29 +24,24 @@ export function getNav(role: AppRole, c: Capabilities): { title: string; items: 
     return [
       {
         title: "Overview",
-        items: [
-          { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
-        ],
+        items: [{ label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" }],
       },
       {
-        title: "Business",
+        title: "Control Center",
         items: [
-          { label: "Vendors", href: "/admin/vendors", icon: "Store" },
           { label: "Approvals", href: "/admin/approvals", icon: "BadgeCheck" },
-          { label: "Orders", href: "/admin/orders", icon: "ShoppingBag" },
+          { label: "Catalogs", href: "/admin/catalogs", icon: "Library" },
+          { label: "Vendors", href: "/admin/vendors", icon: "Store" },
         ],
       },
       {
-        title: "Monetization",
-        items: [
-          { label: "Coupons", href: "/admin/coupons", icon: "TicketPercent" },
-          { label: "Subscriptions", href: "/admin/subscriptions", icon: "Crown" },
-        ],
+        title: "Operations",
+        items: [{ label: "Orders", href: "/admin/orders", icon: "ShoppingBag" }],
       },
     ];
   }
 
-  // Vendor + Staff share almost same menu; staff is filtered by capabilities
+  // Vendor + Staff share the same structure, but filtered by capabilities.
   const shared: { title: string; items: NavItem[] }[] = [
     {
       title: "Overview",
@@ -59,6 +50,18 @@ export function getNav(role: AppRole, c: Capabilities): { title: string; items: 
           label: "Dashboard",
           href: role === "vendor" ? "/vendor/dashboard" : "/staff/dashboard",
           icon: "LayoutDashboard",
+        },
+      ],
+    },
+    {
+      title: "Approvals",
+      items: [
+        {
+          label: "Requests",
+          href: "/vendor/requests",
+          icon: "ClipboardList",
+          // Only vendor creates/owns requests; staff won’t see this by default
+          showIf: (_cap, r) => r === "vendor",
         },
       ],
     },
@@ -112,12 +115,6 @@ export function getNav(role: AppRole, c: Capabilities): { title: string; items: 
       title: "Account",
       items: [
         {
-          label: "Subscription",
-          href: "/vendor/subscription",
-          icon: "Crown",
-          showIf: (cap, r) => r === "vendor" && cap.canViewSubscriptions,
-        },
-        {
           label: "Profile",
           href: role === "vendor" ? "/vendor/profile" : "/staff/profile",
           icon: "User",
@@ -126,7 +123,6 @@ export function getNav(role: AppRole, c: Capabilities): { title: string; items: 
     },
   ];
 
-  // Filter by showIf for staff/vend. Admin already separate.
   return shared.map((section) => ({
     title: section.title,
     items: section.items.filter((it) => (it.showIf ? it.showIf(c, role) : true)),

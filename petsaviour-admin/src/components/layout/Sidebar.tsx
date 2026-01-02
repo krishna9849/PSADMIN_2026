@@ -5,22 +5,20 @@ import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   LayoutDashboard,
-  Users,
   BadgeCheck,
   ShoppingBag,
-  TicketPercent,
-  Crown,
   Store,
   GitBranch,
   UserCog,
   Wrench,
   Package,
-  ClipboardList,
   Briefcase,
   User,
   PawPrint,
   X,
   Menu,
+  ClipboardList,
+  Library,
 } from "lucide-react";
 
 import type { AppRole, Capabilities } from "../../lib/auth/rbac";
@@ -31,18 +29,14 @@ function Icon({ name }: { name: string }) {
   switch (name) {
     case "LayoutDashboard":
       return <LayoutDashboard {...props} />;
-    case "Users":
-      return <Users {...props} />;
-    case "BadgeCheck":
-      return <BadgeCheck {...props} />;
-    case "ShoppingBag":
-      return <ShoppingBag {...props} />;
-    case "TicketPercent":
-      return <TicketPercent {...props} />;
-    case "Crown":
-      return <Crown {...props} />;
     case "Store":
       return <Store {...props} />;
+    case "BadgeCheck":
+      return <BadgeCheck {...props} />;
+    case "Library":
+      return <Library {...props} />;
+    case "ShoppingBag":
+      return <ShoppingBag {...props} />;
     case "GitBranch":
       return <GitBranch {...props} />;
     case "UserCog":
@@ -51,12 +45,12 @@ function Icon({ name }: { name: string }) {
       return <Wrench {...props} />;
     case "Package":
       return <Package {...props} />;
-    case "ClipboardList":
-      return <ClipboardList {...props} />;
     case "Briefcase":
       return <Briefcase {...props} />;
     case "User":
       return <User {...props} />;
+    case "ClipboardList":
+      return <ClipboardList {...props} />;
     default:
       return <LayoutDashboard {...props} />;
   }
@@ -85,11 +79,13 @@ export function Sidebar({
                 <PawPrint size={16} />
               </span>
               <div>
-                <div className="text-lg font-extrabold tracking-tight">
-                  PetSaviour
-                </div>
+                <div className="text-lg font-extrabold tracking-tight">PetSaviour</div>
                 <div className="ps-muted mt-1 text-xs">
-                  {role === "admin" ? "Admin Panel" : role === "vendor" ? "Vendor Panel" : "Staff Panel"}
+                  {role === "admin"
+                    ? "Admin Panel"
+                    : role === "vendor"
+                      ? "Vendor Panel"
+                      : "Staff Panel"}
                 </div>
               </div>
             </div>
@@ -110,12 +106,11 @@ export function Sidebar({
           <div
             className="mt-4 ps-card p-3"
             style={{
-              background:
-                "radial-gradient(circle at top, hsl(var(--primary) / 0.14), transparent 65%)",
+              background: "radial-gradient(circle at top, hsl(var(--primary) / 0.14), transparent 65%)",
             }}
           >
             <p className="ps-muted text-xs">
-              🐾 Tip: Staff permissions will be configurable by Vendor later.
+              🐾 Vendor changes go as <b>Requests</b> → Admin approves → Live.
             </p>
           </div>
         </div>
@@ -129,8 +124,9 @@ export function Sidebar({
 
               <div className="space-y-1">
                 {section.items.map((item) => {
-                  const active =
-                    pathname === item.href || pathname.startsWith(item.href + "/");
+                  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+
+                  const isRequests = item.href === "/vendor/requests";
 
                   return (
                     <Link
@@ -144,10 +140,14 @@ export function Sidebar({
                         style={{
                           background: active
                             ? "hsl(var(--primary) / 0.12)"
-                            : "transparent",
+                            : isRequests
+                              ? "hsl(var(--primary) / 0.08)"
+                              : "transparent",
                           border: active
                             ? "1px solid hsl(var(--primary) / 0.25)"
-                            : "1px solid transparent",
+                            : isRequests
+                              ? "1px solid hsl(var(--primary) / 0.18)"
+                              : "1px solid transparent",
                           color: active
                             ? "hsl(var(--primary))"
                             : "hsl(var(--foreground))",
@@ -160,23 +160,24 @@ export function Sidebar({
                               ? "hsl(var(--primary) / 0.12)"
                               : "hsl(var(--muted))",
                             border: `1px solid ${
-                              active
-                                ? "hsl(var(--primary) / 0.25)"
-                                : "hsl(var(--border))"
+                              active ? "hsl(var(--primary) / 0.25)" : "hsl(var(--border))"
                             }`,
                           }}
                         >
                           <Icon name={item.icon} />
                         </span>
+
                         <span>{item.label}</span>
 
+                        {/* Staff view-only hint */}
                         {role === "staff" &&
                           (item.href.includes("/services") ||
                             item.href.includes("/packages") ||
                             item.href.includes("/branches") ||
-                            item.href.includes("/staff")) && (
-                            <span className="ml-auto ps-badge">View</span>
-                          )}
+                            item.href.includes("/staff")) && <span className="ml-auto ps-badge">View</span>}
+
+                        {/* Requests badge for attention */}
+                        {isRequests && role === "vendor" && <span className="ml-auto ps-badge">New</span>}
                       </div>
                     </Link>
                   );
@@ -191,7 +192,7 @@ export function Sidebar({
         </button>
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="ps-muted text-xs">Made with 🧡 for pets</span>
+          <span className="ps-muted text-xs">Built with 🧡 for pets</span>
           <span className="ps-badge">🐶 🐱</span>
         </div>
       </div>
@@ -200,7 +201,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile top-left menu button (shown by PanelShell in topbar area) */}
       <button
         type="button"
         className="ps-btn ps-btn-ghost md:hidden"
@@ -211,10 +211,8 @@ export function Sidebar({
         <Menu size={18} />
       </button>
 
-      {/* Desktop sidebar */}
       <Shell mobile={false} />
 
-      {/* Mobile drawer */}
       {openMobile && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div

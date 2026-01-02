@@ -3,10 +3,23 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "../ThemeToggle";
-import { tokenStore } from "../../lib/auth/tokens";
 import { useAuthStore } from "../../store/auth.store";
-import { getDefaultCapabilities } from "../../lib/auth/rbac";
+import { getDefaultCapabilities, type AppRole } from "../../lib/auth/rbac";
 import { Sidebar } from "./Sidebar";
+import { toast } from "../../lib/ui/toast";
+
+function getUiRole(session: {
+  backendRole: "admin" | "vendor" | null;
+  staffRole?: string | null;
+}): AppRole | null {
+  if (!session.backendRole) return null;
+
+  if (session.backendRole === "admin") return "admin";
+
+  // backendRole === "vendor"
+  if (session.staffRole && session.staffRole === "vendor_admin") return "vendor";
+  return "staff";
+}
 
 export function PanelShell({
   title,
@@ -17,25 +30,26 @@ export function PanelShell({
 }) {
   const router = useRouter();
   const clearSession = useAuthStore((s) => s.clearSession);
-  const role = useAuthStore((s) => s.role);
+  const session = useAuthStore((s) => s.session);
+
+  const uiRole = useMemo(() => getUiRole(session), [session]);
 
   const capabilities = useMemo(() => {
     // Later: merge vendor-assigned permissions fetched from API
-    return role ? getDefaultCapabilities(role) : getDefaultCapabilities("staff");
-  }, [role]);
+    return getDefaultCapabilities((uiRole ?? "staff") as AppRole);
+  }, [uiRole]);
 
   function logout() {
     clearSession();
-    tokenStore.clearAll();
+    toast.success("Signed out safely 🐶");
     router.replace("/");
   }
 
   return (
     <div className="min-h-screen">
       <div className="flex">
-        {/* Sidebar includes mobile menu button + drawer */}
-        {role && (
-          <Sidebar role={role} capabilities={capabilities} onLogout={logout} />
+        {uiRole && (
+          <Sidebar role={uiRole} capabilities={capabilities} onLogout={logout} />
         )}
 
         <main className="flex-1">
@@ -49,22 +63,11 @@ export function PanelShell({
             }}
           >
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-              <div className="flex items-center gap-2">
-                {/* Mobile menu button comes from Sidebar component */}
-                {role && (
-                  <span className="md:hidden">
-                    {/* Sidebar renders the button; we keep spacing here only */}
-                  </span>
-                )}
-
-                <div>
-                  <h1 className="text-base font-extrabold tracking-tight">
-                    {title}
-                  </h1>
-                  <p className="ps-muted text-xs">
-                    {role ? `Logged as ${role}` : "Not logged in"} • PetSaviour 🐾
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-base font-extrabold tracking-tight">{title}</h1>
+                <p className="ps-muted text-xs">
+                  {uiRole ? `Logged as ${uiRole}` : "Not logged in"} • PetSaviour 🐾
+                </p>
               </div>
 
               <div className="flex items-center gap-2">

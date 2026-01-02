@@ -1,89 +1,121 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { EP } from "./endpoints";
-import { tokenStore } from "../auth/tokens";
+import axios, { AxiosError, AxiosInstance } from "axios";
+import { useAuthStore } from "../../store/auth.store";
+import { toast } from "../ui/toast";
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
-export const api = axios.create({
+/**
+ * Feature flag:
+ * - false by default (since refresh API not available now)
+ * - later set NEXT_PUBLIC_ENABLE_REFRESH=true
+ */
+const ENABLE_REFRESH = process.env.NEXT_PUBLIC_ENABLE_REFRESH === "true";
+
+export const api: AxiosInstance = axios.create({
   baseURL,
-  timeout: 30000,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = tokenStore.getAccessToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+/**
+ * Single-flight refresh lock (future use)
+ */
+let refreshingPromise: Promise<string | null> | null = null;
 
-let isRefreshing = false;
-let pendingQueue: Array<(token: string | null) => void> = [];
+/**
+ * When refresh API is ready, implement this function.
+ * For now returns null (because refresh not available).
+ */
+async function refreshAccessToken(): Promise<string | null> {
+  // ✅ feature flag check
+  if (!ENABLE_REFRESH) return null;
 
-function flushQueue(token: string | null) {
-  pendingQueue.forEach((cb) => cb(token));
-  pendingQueue = [];
+  // 🚧 Placeholder: implement when refresh endpoint exists
+  // Example future implementation:
+  // const res = await axios.post(baseURL + EP.auth.refresh, { refreshToken: ... })
+  // return res.data?.token || res.data?.accessToken || null
+
+  return null;
 }
 
-async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = tokenStore.getRefreshToken();
-  if (!refreshToken) return null;
+function clearAndRedirectToLogin() {
+  const store = useAuthStore.getState();
+  store.clearSession();
 
-  try {
-    // Assumption: refresh token is sent in body; adjust if your API uses cookie/header.
-    const res = await axios.post(
-      `${baseURL}${EP.auth.refresh}`,
-      { refreshToken },
-      { timeout: 30000 }
-    );
-
-    // Assumption: { accessToken, refreshToken? }
-    const newAccess = res.data?.accessToken || res.data?.token || null;
-    const newRefresh = res.data?.refreshToken || null;
-
-    if (newAccess) tokenStore.setAccessToken(newAccess);
-    if (newRefresh) tokenStore.setRefreshToken(newRefresh);
-
-    return newAccess;
-  } catch {
-    return null;
+  toast.error("Session expired 😿 Please login again");
+  if (typeof window !== "undefined") {
+    window.location.href = "/";
   }
 }
 
+api.interceptors.request.use((config) => {
+  const session = useAuthStore.getState().session;
+  const token = session.token;
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 api.interceptors.response.use(
   (res) => res,
-  async (err: AxiosError) => {
-    const original = err.config as any;
-    const status = err.response?.status;
+  async (error: AxiosError) => {
+    const status = error.response?.status;
 
-    if (status !== 401 || original?._retry) {
-      return Promise.reject(err);
-    }
+    // If unauthorized
+    if (status === 401) {
+      // If refresh is disabled -> logout immediately
+      if (!ENABLE_REFRESH) {
+        clearAndRedirectToLogin();
+        return Promise.reject(error);
+      }
 
-    original._retry = true;
+      // If enabled, try refresh once and retry the original request
+      const originalRequest: any = error.config;
+      if (originalRequest?._retry) {
+        clearAndRedirectToLogin();
+        return Promise.reject(error);
+      }
+      originalRequest._retry = true;
 
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        pendingQueue.push((token) => {
-          if (!token) return reject(err);
-          original.headers.Authorization = `Bearer ${token}`;
-          resolve(api(original));
+      try {
+        if (!refreshingPromise) {
+          refreshingPromise = refreshAccessToken().finally(() => {
+            refreshingPromise = null;
+          });
+        }
+
+        const newToken = await refreshingPromise;
+
+        if (!newToken) {
+          clearAndRedirectToLogin();
+          return Promise.reject(error);
+        }
+
+        // Update store with new token (keep existing metadata)
+        const store = useAuthStore.getState();
+        const current = store.session;
+
+        store.setSession({
+          ...current,
+          token: newToken,
         });
-      });
+
+        // Retry with new token
+        originalRequest.headers = originalRequest.headers ?? {};
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        return api(originalRequest);
+      } catch (e) {
+        clearAndRedirectToLogin();
+        return Promise.reject(error);
+      }
     }
 
-    isRefreshing = true;
-
-    const newToken = await refreshAccessToken();
-
-    isRefreshing = false;
-    flushQueue(newToken);
-
-    if (!newToken) {
-      tokenStore.clearAll();
-      if (typeof window !== "undefined") window.location.href = "/";
-      return Promise.reject(err);
-    }
-
-    original.headers.Authorization = `Bearer ${newToken}`;
-    return api(original);
+    return Promise.reject(error);
   }
 );

@@ -1,33 +1,36 @@
 import { create } from "zustand";
-import { tokenStore, AuthRole } from "../lib/auth/tokens";
+
+export type BackendRole = "admin" | "vendor";
+
+export type Session = {
+  token: string | null;
+  backendRole: BackendRole | null;
+  staffRole?: string | null;
+  vendorId?: string | null;
+  staffId?: string | null;
+  branchId?: string | null;
+  email?: string | null;
+};
 
 type AuthState = {
-  role: AuthRole | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  setSession: (p: { role: AuthRole; accessToken: string; refreshToken?: string | null }) => void;
+  session: Session;
+  setSession: (s: Session) => void;
   clearSession: () => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
-  role: tokenStore.getRole(),
-  accessToken: tokenStore.getAccessToken(),
-  refreshToken: tokenStore.getRefreshToken(),
+  session: {
+    token: null,
+    backendRole: null,
+  },
 
-  setSession: ({ role, accessToken, refreshToken }) => {
-    tokenStore.setRole(role);
-    tokenStore.setAccessToken(accessToken);
-    if (refreshToken) tokenStore.setRefreshToken(refreshToken);
+  setSession: (session) => set({ session }),
 
+  clearSession: () =>
     set({
-      role,
-      accessToken,
-      refreshToken: refreshToken ?? tokenStore.getRefreshToken(),
-    });
-  },
-
-  clearSession: () => {
-    tokenStore.clearAll();
-    set({ role: null, accessToken: null, refreshToken: null });
-  },
+      session: {
+        token: null,
+        backendRole: null,
+      },
+    }),
 }));
